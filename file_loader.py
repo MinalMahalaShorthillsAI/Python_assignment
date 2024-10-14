@@ -86,6 +86,13 @@ class PDFLoader(FileLoader):
             for page in pdf.pages:
                 tables.extend(page.extract_tables())  # Append all tables
         return tables
+    
+    def extract_metadata(self):
+        """Extract metadata from the PDF."""
+        metadata = {}
+        with pdfplumber.open(self.file_path) as pdf:
+            metadata = pdf.metadata  # Get metadata from pdfplumber
+        return metadata
 
 
 # Concrete DOCXLoader Class
@@ -102,6 +109,21 @@ class DOCXLoader(FileLoader):
             self.content = Document(self.file_path)
             return self.content
         raise ValueError("Invalid DOCX file")
+    
+    def extract_metadata(self):
+        """Extract metadata from the DOCX."""
+        metadata = {}
+        doc = Document(self.file_path)
+        core_properties = doc.core_properties
+        metadata = {
+            'title': core_properties.title,
+            'author': core_properties.author,
+            'subject': core_properties.subject,
+            'keywords': core_properties.keywords,
+            'created': core_properties.created,
+            'modified': core_properties.modified,
+        }
+        return metadata
 
 
 # Concrete PPTLoader Class
@@ -118,3 +140,18 @@ class PPTLoader(FileLoader):
             self.content = Presentation(self.file_path)
             return self.content
         raise ValueError("Invalid PPT file")
+
+    def extract_metadata(self):
+        """Extract metadata from the PPT."""
+        metadata = {}
+        presentation = Presentation(self.file_path)
+        core_properties = presentation.core_properties
+        metadata = {
+            'title': core_properties.title,
+            'author': core_properties.author,
+            'subject': core_properties.subject,
+            'keywords': core_properties.keywords,
+            'created': core_properties.created,
+            'modified': core_properties.modified,
+        }
+        return metadata

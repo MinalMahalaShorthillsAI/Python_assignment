@@ -82,6 +82,35 @@ class Storage:
             except Exception as e:
                 print(f"Error saving table {idx + 1}: {e}")
 
+
+    def save_metadata(self):
+        """Save metadata extracted from the file."""
+        if isinstance(self.extractor.file_loader, PDFLoader):
+            metadata = self.extractor.file_loader.extract_metadata()
+        elif isinstance(self.extractor.file_loader, DOCXLoader):
+            metadata = self.extractor.file_loader.extract_metadata()
+        elif isinstance(self.extractor.file_loader, PPTLoader):
+            metadata = self.extractor.file_loader.extract_metadata()
+        else:
+            print("Unknown file type. Unable to extract metadata.")
+            return
+        
+        # Create a directory for metadata if it doesn't exist
+        metadata_folder = os.path.join(self.base_path, 'metadata')
+        os.makedirs(metadata_folder, exist_ok=True)
+        
+        # Save metadata to a file
+        metadata_file = os.path.join(metadata_folder, f'{self._get_file_type()}_metadata.txt')
+        
+        try:
+            with open(metadata_file, 'w', encoding='utf-8') as f:
+                for key, value in metadata.items():
+                    f.write(f"{key}: {value}\n")
+            print(f"Successfully saved metadata to {metadata_file}")
+        except Exception as e:
+            print(f"Error saving metadata: {e}")
+
+
     def _get_file_type(self):
         """Helper method to get the file type (pdf, docx, ppt) based on the loader class."""
         if isinstance(self.extractor.file_loader, PDFLoader):
@@ -131,6 +160,14 @@ class StorageSQL:
                 table_data TEXT
             )
         ''')
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS extracted_metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_type TEXT,
+            key TEXT,
+            value TEXT
+        )
+    ''')
         self.conn.commit()
 
     def save_text(self):
@@ -145,6 +182,32 @@ class StorageSQL:
 
         self.conn.commit()
         print("Text data saved to database.")
+
+    def save_metadata(self):
+        """Save metadata extracted from the file."""
+        metadata = {}
+
+        if isinstance(self.extractor.file_loader, PDFLoader):
+            metadata = self.extractor.file_loader.extract_metadata()
+        elif isinstance(self.extractor.file_loader, DOCXLoader):
+            metadata = self.extractor.file_loader.extract_metadata()
+        elif isinstance(self.extractor.file_loader, PPTLoader):
+            metadata = self.extractor.file_loader.extract_metadata()
+        else:
+            print("Unknown file type. Unable to extract metadata.")
+            return
+
+        file_type = self._get_file_type()
+
+        cursor = self.conn.cursor()
+        for key, value in metadata.items():
+            cursor.execute('''
+                INSERT INTO extracted_metadata (file_type, key, value)
+                VALUES (?, ?, ?)
+            ''', (file_type, key, value))
+
+        self.conn.commit()
+        print("Metadata data saved to database.")
 
     def save_links(self):
         links = self.extractor.extract_links()

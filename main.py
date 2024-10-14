@@ -11,6 +11,7 @@ def process_file(loader_class, db_path, base_output_folder):
     sql_storage.save_links()
     sql_storage.save_images()
     sql_storage.save_tables()
+    sql_storage.save_metadata()
     sql_storage.close()
 
     # Save data to filesystem
@@ -19,6 +20,8 @@ def process_file(loader_class, db_path, base_output_folder):
     fs_storage.save_links()
     fs_storage.save_images()
     fs_storage.save_tables()
+    fs_storage.save_metadata()
+
 
 def main():
     # Define file paths and output locations
@@ -28,10 +31,15 @@ def main():
     base_output_folder = 'output_data'
     db_path = 'extracted_data.db'
 
-    # Processing logic for PDF, DOCX, and PPT files
     process_file(PDFLoader(pdf_file), db_path, base_output_folder)
     process_file(DOCXLoader(docx_file), db_path, base_output_folder)
     process_file(PPTLoader(ppt_file), db_path, base_output_folder)
+
+
+
+    # Processing logic for PDF, DOCX, and PPT files
+
+
 
 if __name__ == "__main__":
     main()
