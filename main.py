@@ -41,9 +41,9 @@ def main():
     Main function to define file paths and output locations, and initiate the processing of each file type.
     """
     # Define file paths for documents and output locations
-    pdf_file = 'Document 2.pdf'
-    docx_file = 'Document 2.docx'
-    ppt_file = 'Document 2.pptx'
+    pdf_file = 'files/Document 2.pdf'
+    docx_file = 'files/Document 2.docx'
+    ppt_file = 'files/Document 2.pptx'
     base_output_folder = 'output_data'  # Output folder for extracted data
     db_path = 'extracted_data.db'        # Database path for storing extracted data
 
