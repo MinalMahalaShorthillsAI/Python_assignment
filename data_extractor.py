@@ -75,7 +75,7 @@ class DataExtractor:
                     for paragraph in shape.text_frame.paragraphs:
                         for run in paragraph.runs:
                             if run.hyperlink and run.hyperlink.address:
-                                links.append((run.text, run.hyperlink.address))
+                                links.append((run.hyperlink.address))
         return links
 
     def extract_images(self):
@@ -165,8 +165,6 @@ class DataExtractor:
         with pdfplumber.open(file_path) as pdf:
             return pdf.metadata
 
-    def extract_docx_metadata(self):
-        """Extract metadata from a DOCX file."""
         core_properties = self.content.core_properties
         return {
             'title': core_properties.title,
@@ -178,6 +176,18 @@ class DataExtractor:
         }
 
     def extract_ppt_metadata(self):
+        """Extract metadata from a PPTX file."""
+        core_properties = self.content.core_properties
+        return {
+            'title': core_properties.title,
+            'author': core_properties.author,
+            'subject': core_properties.subject,
+            'keywords': core_properties.keywords,
+            'created': core_properties.created,
+            'modified': core_properties.modified,
+        }
+    
+    def extract_docx_metadata(self):
         """Extract metadata from a PPTX file."""
         core_properties = self.content.core_properties
         return {

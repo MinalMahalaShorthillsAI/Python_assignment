@@ -2,6 +2,7 @@ import os
 import csv
 import sqlite3
 from io import BytesIO
+import mysql.connector
 from PIL import Image
 from data_extractor import DataExtractor
 from file_loader import PDFLoader, DOCXLoader, PPTLoader
@@ -117,48 +118,49 @@ class Storage:
 
 
 class StorageSQL:
-    def __init__(self, extractor: DataExtractor, db_path='extracted_data.db'):
+    def __init__(self, extractor: DataExtractor, db_config):
         self.extractor = extractor
-        self.conn = sqlite3.connect(db_path)  # Connect to SQLite database
+        # db_config is a dictionary containing MySQL connection parameters
+        self.conn = mysql.connector.connect(**db_config)
         self.create_tables()
 
     def create_tables(self):
-        """Create tables in the database if they don't exist."""
+        """Create tables in the MySQL database if they don't exist."""
         cursor = self.conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS extracted_text (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_type TEXT,
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_type VARCHAR(255),
                 content TEXT
             )
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS extracted_links (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_type TEXT,
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_type VARCHAR(255),
                 link TEXT
             )
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS extracted_images (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_type TEXT,
-                image BLOB
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_type VARCHAR(255),
+                image LONGBLOB
             )
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS extracted_tables (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_type TEXT,
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_type VARCHAR(255),
                 table_data TEXT
             )
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS extracted_metadata (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_type TEXT,
-                key TEXT,
-                value TEXT
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_type VARCHAR(255),
+                `key` VARCHAR(255),
+                `value` TEXT
             )
         ''')
         self.conn.commit()
@@ -181,7 +183,7 @@ class StorageSQL:
 
                 cursor.execute('''
                     INSERT INTO extracted_images (file_type, image)
-                    VALUES (?, ?)
+                    VALUES (%s, %s)
                 ''', (file_type, img_byte_arr))
 
             except Exception as e:
@@ -190,7 +192,6 @@ class StorageSQL:
         self.conn.commit()
         print("Image data saved to database.")
 
-
     def save_metadata(self):
         metadata = self.extractor.extract_metadata()
         file_type = self._get_file_type()
@@ -198,12 +199,12 @@ class StorageSQL:
 
         for key, value in metadata.items():
             cursor.execute('''
-                INSERT INTO extracted_metadata (file_type, key, value)
-                VALUES (?, ?, ?)
+                INSERT INTO extracted_metadata (file_type, `key`, `value`)
+                VALUES (%s, %s, %s)
             ''', (file_type, key, value))
 
         self.conn.commit()
-        print("Metadata data saved to database.")
+        print("Metadata saved to database.")
 
     def _save_to_db(self, table_name, column_name, extract_func, is_link=False):
         """General method to save data to the database."""
@@ -216,7 +217,7 @@ class StorageSQL:
                 item = item[1]  # Only save the hyperlink part
             cursor.execute(f'''
                 INSERT INTO {table_name} (file_type, {column_name})
-                VALUES (?, ?)
+                VALUES (%s, %s)
             ''', (file_type, item))
 
         self.conn.commit()
@@ -233,7 +234,7 @@ class StorageSQL:
 
             cursor.execute('''
                 INSERT INTO extracted_tables (file_type, table_data)
-                VALUES (?, ?)
+                VALUES (%s, %s)
             ''', (file_type, table_data))
 
         self.conn.commit()
@@ -256,26 +257,18 @@ class StorageSQL:
 
     def _get_file_type(self):
         """Helper method to get the file type (pdf, docx, ppt) based on the loader class."""
-        if isinstance(self.extractor.file_loader, PDFLoader):
-            return 'pdf'
-        elif isinstance(self.extractor.file_loader, DOCXLoader):
-            return 'docx'
-        elif isinstance(self.extractor.file_loader, PPTLoader):
-            return 'ppt'
+        file_loader_mapping = {
+            PDFLoader: 'pdf',
+            DOCXLoader: 'docx',
+            PPTLoader: 'ppt'
+        }
+
+        for loader_class, file_type in file_loader_mapping.items():
+            if isinstance(self.extractor.file_loader, loader_class):
+                return file_type
+        
         return 'unknown'
 
     def close(self):
         """Close the database connection."""
         self.conn.close()
-
-    def display_data(self, table_name):
-        cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM {table_name}")
-        rows = cursor.fetchall()
-
-        if rows:
-            print(f"\nData from {table_name}:")
-            for row in rows:
-                print(row)
-        else:
-            print(f"\nNo data found in {table_name}.")
