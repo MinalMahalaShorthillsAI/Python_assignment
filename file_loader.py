@@ -5,110 +5,52 @@ from pptx import Presentation
 
 # Abstract FileLoader Class
 class FileLoader(ABC):
-    """Abstract base class for loading different file types.
-    
-    This class defines the interface for file loaders that handle different types of files.
-    Any class inheriting from FileLoader must implement the validate_file and load_file methods.
-    """
+    """Abstract base class for loading different file types."""
 
-    @abstractmethod
-    def validate_file(self) -> bool:
-        """Check if the file is valid.
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+
+    def validate_and_load_file(self):
+        """Validate the file and load its content if valid.
         
-        This method must be implemented by subclasses to validate if the provided file
-        is of the correct type and exists at the specified path.
+        This method checks if the file exists and if the file extension is correct.
+        If valid, it calls the specific method to load the content.
         """
-        pass
+        if not os.path.isfile(self.file_path):
+            raise ValueError(f"File does not exist: {self.file_path}")
+        if not self.file_path.endswith(self.file_extension):
+            raise ValueError(f"Invalid file type: Expected {self.file_extension}")
+
+        return self.load_file()  # Load the file content
 
     @abstractmethod
     def load_file(self):
-        """Load the file and return its content.
+        """Abstract method to load the file's content.
         
-        This method must be implemented by subclasses to load the file and return its content,
-        whether as a raw file path, an object, or some other format suitable for processing.
+        Subclasses must implement this to return the specific content.
         """
         pass
 
 
-# PDFLoader Class
 class PDFLoader(FileLoader):
-    """Concrete implementation of FileLoader for PDF files.
-    
-    This class provides methods to validate and load PDF files.
-    """
-
-    def __init__(self, file_path: str):
-        """Initialize PDFLoader with the path to the PDF file."""
-        self.file_path = file_path
-
-    def validate_file(self) -> bool:
-        """Check if the file is a valid PDF file and exists.
-        
-        Returns True if the file is a .pdf file and exists at the provided path, False otherwise.
-        """
-        return self.file_path.endswith('.pdf') and os.path.isfile(self.file_path)
+    file_extension = '.pdf'
 
     def load_file(self):
-        """Load the PDF file if valid and return the file path for further extraction.
-        
-        Raises a ValueError if the file is invalid.
-        """
-        if not self.validate_file():
-            raise ValueError("Invalid PDF file")
-        return self.file_path  # Return file path for extraction
+        """Load and return the file path for PDF extraction."""
+        return self.file_path
 
 
-# DOCXLoader Class
 class DOCXLoader(FileLoader):
-    """Concrete implementation of FileLoader for DOCX files.
-    
-    This class provides methods to validate and load DOCX files.
-    """
-
-    def __init__(self, file_path: str):
-        """Initialize DOCXLoader with the path to the DOCX file."""
-        self.file_path = file_path
-
-    def validate_file(self) -> bool:
-        """Check if the file is a valid DOCX file and exists.
-        
-        Returns True if the file is a .docx file and exists at the provided path, False otherwise.
-        """
-        return self.file_path.endswith('.docx') and os.path.isfile(self.file_path)
+    file_extension = '.docx'
 
     def load_file(self):
-        """Load the DOCX file if valid and return the Document object for extraction.
-        
-        Raises a ValueError if the file is invalid.
-        """
-        if self.validate_file():
-            return Document(self.file_path)  # Return the Document object for extraction
-        raise ValueError("Invalid DOCX file")
+        """Load and return the Document object for DOCX extraction."""
+        return Document(self.file_path)
 
 
-# PPTLoader Class
 class PPTLoader(FileLoader):
-    """Concrete implementation of FileLoader for PPTX files.
-    
-    This class provides methods to validate and load PPTX files.
-    """
-
-    def __init__(self, file_path: str):
-        """Initialize PPTLoader with the path to the PPTX file."""
-        self.file_path = file_path
-
-    def validate_file(self) -> bool:
-        """Check if the file is a valid PPTX file and exists.
-        
-        Returns True if the file is a .pptx file and exists at the provided path, False otherwise.
-        """
-        return self.file_path.endswith('.pptx') and os.path.isfile(self.file_path)
+    file_extension = '.pptx'
 
     def load_file(self):
-        """Load the PPTX file if valid and return the Presentation object for extraction.
-        
-        Raises a ValueError if the file is invalid.
-        """
-        if self.validate_file():
-            return Presentation(self.file_path)  # Return the Presentation object for extraction
-        raise ValueError("Invalid PPTX file")
+        """Load and return the Presentation object for PPTX extraction."""
+        return Presentation(self.file_path)

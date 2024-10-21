@@ -238,10 +238,8 @@ class DataExtractor:
         """
         if isinstance(self.file_loader, PDFLoader):
             return self.extract_pdf_metadata(self.file_loader.file_path)
-        elif isinstance(self.file_loader, DOCXLoader):
-            return self.extract_docx_metadata()
-        elif isinstance(self.file_loader, PPTLoader):
-            return self.extract_ppt_metadata()
+        elif isinstance(self.file_loader, DOCXLoader) or isinstance(self.file_loader, PPTLoader):
+            return self.extract_document_metadata()
         return {}
 
     def extract_pdf_metadata(self, file_path):
@@ -257,29 +255,12 @@ class DataExtractor:
         with pdfplumber.open(file_path) as pdf:
             return pdf.metadata
 
-    def extract_docx_metadata(self):
+    def extract_document_metadata(self):
         """
-        Extract metadata from a DOCX file.
+        Extract metadata from a DOCX or PPTX file.
 
         Returns:
-            dict: A dictionary containing the DOCX document's metadata.
-        """
-        core_properties = self.content.core_properties
-        return {
-            'title': core_properties.title,
-            'author': core_properties.author,
-            'subject': core_properties.subject,
-            'keywords': core_properties.keywords,
-            'created': core_properties.created,
-            'modified': core_properties.modified,
-        }
-
-    def extract_ppt_metadata(self):
-        """
-        Extract metadata from a PPTX file.
-
-        Returns:
-            dict: A dictionary containing the PPTX presentation's metadata.
+            dict: A dictionary containing the document's metadata.
         """
         core_properties = self.content.core_properties
         return {
