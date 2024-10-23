@@ -37,6 +37,21 @@ class DataStorage(ABC):
         """Save extracted metadata."""
         pass
 
+    def _prepare_image_data(self, image_data):
+        """Prepare image data for saving."""
+        if isinstance(image_data, dict):
+            return BytesIO(image_data['stream'].get_data())
+        if isinstance(image_data, bytes):
+            return BytesIO(image_data)
+        return image_data
+
+    def _get_file_type(self):
+        """Determine the file type based on the file loader used."""
+        file_loader_mapping = {PDFLoader: 'pdf', DOCXLoader: 'docx', PPTLoader: 'ppt'}
+        return next((file_type for loader_class, file_type in file_loader_mapping.items()
+                     if isinstance(self.extractor.file_loader, loader_class)), 'unknown')
+
+
 # Concrete implementation for file-based storage
 class Storage(DataStorage):
     def __init__(self, extractor, base_path):
@@ -103,30 +118,6 @@ class Storage(DataStorage):
         except Exception as e:
             print(f"Error saving {data_type}: {e}")
 
-    def _save_to_file(self, file_path, data):
-        """Helper method to save data to a file."""
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(data)
-
-    def _write_csv(self, file_path, data):
-        """Helper method to write table data to a CSV file."""
-        with open(file_path, mode='w', newline='', encoding='utf-8') as file:
-            csv.writer(file).writerows(data)
-            print(f"Successfully saved table to {file_path}")
-
-    def _prepare_image_data(self, image_data):
-        """Prepare image data for saving."""
-        if isinstance(image_data, dict):
-            return BytesIO(image_data['stream'].get_data())
-        if isinstance(image_data, bytes):
-            return BytesIO(image_data)
-        return image_data
-
-    def _get_file_type(self):
-        """Determine the file type based on the file loader used."""
-        file_loader_mapping = {PDFLoader: 'pdf', DOCXLoader: 'docx', PPTLoader: 'ppt'}
-        return next((file_type for loader_class, file_type in file_loader_mapping.items()
-                     if isinstance(self.extractor.file_loader, loader_class)), 'unknown')
 
 # Concrete implementation for SQL-based storage
 class StorageSQL(DataStorage):
@@ -237,17 +228,6 @@ class StorageSQL(DataStorage):
         except Exception as e:
             print(f"Error saving {data_type} to SQL database: {e}")
 
-    def _insert_into_db(self, table_name, values):
-        """Insert data into the specified table in the database."""
-        cursor = self.conn.cursor()
-        placeholders = ', '.join(['%s'] * len(values))
-        sql = f'INSERT INTO {table_name} VALUES (NULL, {placeholders})'  # Updated to auto-increment ID
-        try:
-            cursor.execute(sql, values)
-            self.conn.commit()
-        except Exception as e:
-            print(f"Error inserting into {table_name}: {e}")
-
     def _get_image_bytes(self, image_data):
         """Convert image data to bytes."""
         img_byte_arr = BytesIO()
@@ -255,20 +235,6 @@ class StorageSQL(DataStorage):
         image.save(img_byte_arr, format=image.format)
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
-
-    def _prepare_image_data(self, image_data):
-        """Prepare image data for saving."""
-        if isinstance(image_data, dict):
-            return BytesIO(image_data['stream'].get_data())
-        if isinstance(image_data, bytes):
-            return BytesIO(image_data)
-        return image_data
-
-    def _get_file_type(self):
-        """Determine the file type based on the file loader used."""
-        file_loader_mapping = {PDFLoader: 'pdf', DOCXLoader: 'docx', PPTLoader: 'ppt'}
-        return next((file_type for loader_class, file_type in file_loader_mapping.items()
-                     if isinstance(self.extractor.file_loader, loader_class)), 'unknown')
 
     def close(self):
         """Close the database connection."""
